@@ -3,6 +3,7 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'time'
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
@@ -85,3 +86,19 @@ contents.each do |row|
 
   puts "#{name} #{correct_number}"
 end
+
+parse_time = []
+
+contents.each do |row|
+  reg_date = row[:regdate]
+
+  time = reg_date.split(' ')[1]
+
+  parse_time.push(Time.parse(time).strftime('%k%p'))
+end
+
+hours = parse_time.each_with_object(Hash.new(0)) do |hour, result|
+  result[hour] += 1
+end
+
+hours.each { |hour, number| puts "Hour: #{hour} - Number of registered attendees: #{number}" }
