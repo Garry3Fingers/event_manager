@@ -4,6 +4,7 @@ require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
 require 'time'
+require 'date'
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
@@ -51,6 +52,14 @@ def format_phone_number(clean_number)
   end
 end
 
+def get_time(reg_date)
+  reg_date.split(' ')[1]
+end
+
+def get_date(reg_date)
+  reg_date.split(' ')[0]
+end
+
 puts 'Event manager initialized!'
 
 contents = CSV.open(
@@ -61,6 +70,10 @@ contents = CSV.open(
 
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
+
+parse_time = []
+
+parse_date = []
 
 contents.each do |row|
   id = row[0]
@@ -73,10 +86,6 @@ contents.each do |row|
   form_letter = erb_template.result(binding)
 
   save_thank_you_letter(id, form_letter)
-end
-
-contents.each do |row|
-  name = row[:first_name]
 
   number = row[:homephone]
 
@@ -85,16 +94,16 @@ contents.each do |row|
   correct_number = format_phone_number(clean_number)
 
   puts "#{name} #{correct_number}"
-end
 
-parse_time = []
-
-contents.each do |row|
   reg_date = row[:regdate]
 
-  time = reg_date.split(' ')[1]
+  time = get_time(reg_date)
+
+  date = get_date(reg_date)
 
   parse_time.push(Time.parse(time).strftime('%k%p'))
+
+  parse_date.push(Date.strptime(date, '%m/%d/%Y'))
 end
 
 hours = parse_time.each_with_object(Hash.new(0)) do |hour, result|
@@ -102,3 +111,9 @@ hours = parse_time.each_with_object(Hash.new(0)) do |hour, result|
 end
 
 hours.each { |hour, number| puts "Hour: #{hour} - Number of registered attendees: #{number}" }
+
+day_of_week = parse_date.each_with_object(Hash.new(0)) do |day, result|
+  result[day.wday] += 1
+end
+
+day_of_week.each { |day, number| puts "The day of the week: #{day} - Number of registered attendees: #{number}" }
